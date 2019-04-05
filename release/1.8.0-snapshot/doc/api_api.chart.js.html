@@ -3,7 +3,7 @@
 <head>
     
     <meta charset="utf-8">
-    <title>core.js - billboard.js API doc</title>
+    <title>api/api.chart.js - billboard.js API doc</title>
     
     <meta name="description" content="Re-usable, easy interface JavaScript chart library based on D3 v4+" />
     
@@ -39,7 +39,7 @@
 
 <div id="main">
     
-    <h1 class="page-title">core.js</h1>
+    <h1 class="page-title">api/api.chart.js</h1>
     
 
     
@@ -51,144 +51,146 @@
         <article>
             <pre class="prettyprint source linenums"><code>/**
  * Copyright (c) 2017 ~ present NAVER Corp.
- * billboard project is licensed under the MIT license
+ * billboard.js project is licensed under the MIT license
  */
-import Chart from "./internals/Chart";
-import ChartInternal from "./internals/ChartInternal";
-import Axis from "./axis/Axis";
+import Chart from "../internals/Chart";
+import {window} from "../internals/browser";
+import {notEmpty, isDefined, extend} from "../internals/util";
 
-import "./config/config";
-import "./internals/scale";
-import "./internals/domain";
-import "./data/data";
-import "./data/data.convert";
-import "./data/data.load";
-import "./internals/category";
-import "./interactions/interaction";
-import "./internals/size";
-import "./shape/shape";
-import "./shape/arc";
-import "./shape/bar";
-import "./shape/bubble";
-import "./shape/line";
-import "./shape/point";
-import "./shape/radar";
-import "./internals/text";
-import "./internals/type";
-import "./internals/grid";
-import "./internals/tooltip";
-import "./internals/legend";
-import "./internals/title";
-import "./internals/clip";
-import "./internals/region";
-import "./interactions/drag";
-import "./internals/selection";
-import "./interactions/subchart";
-import "./interactions/zoom";
-import "./internals/color";
-import "./internals/format";
-import "./internals/cache";
-import "./internals/class";
-import "./api/api.focus";
-import "./api/api.show";
-import "./api/api.zoom";
-import "./api/api.load";
-import "./api/api.flow";
-import "./api/api.selection";
-import "./api/api.transform";
-import "./api/api.group";
-import "./api/api.grid";
-import "./api/api.region";
-import "./api/api.data";
-import "./api/api.category";
-import "./api/api.color";
-import "./api/api.x";
-import "./api/api.axis";
-import "./api/api.legend";
-import "./api/api.chart";
-import "./api/api.tooltip";
-import "./internals/ua";
-import "./api/api.export";
-
-/**
- * @namespace bb
- * @version #__VERSION__#
- */
-const bb = {
+extend(Chart.prototype, {
 	/**
-	 * Version information
-	 * @property {String} version version
+	 * Resize the chart.
+	 * @method resize
+	 * @instance
+	 * @memberof Chart
+	 * @param {Object} size This argument should include width and height in pixels.
 	 * @example
-	 *    bb.version;  // "1.0.0"
-	 * @memberof bb
+	 * // Resize to 640x480
+	 * chart.resize({
+	 *    width: 640,
+	 *    height: 480
+	 * });
 	 */
-	version: "#__VERSION__#",
+	resize(size) {
+		const config = this.internal.config;
 
-	/**
-	 * Generate chart
-	 * @param {Options} options chart options
-	 * @memberof bb
-	 * @return {Chart}
-	 * @see {@link Options} for different generation options
-	 * @see {@link Chart} for different methods API
-	 * @example
-	 *  &lt;!-- chart holder -->
-	 * &lt;div id="LineChart">&lt;/div>
-	 * @example
-	 *   // generate chart with options
-	 *  var chart = bb.generate({
-	 *      "bindto": "#LineChart"
-	 *      "data": {
-	 *          "columns": [
-	 *              ["data1", 30, 200, 100, 400, 150, 250],
-	 *              ["data2", 50, 20, 10, 40, 15, 25]
-	 *           ]
-	 *      }
-	 *  });
-	 *
-	 *  // call some API
-	 *  // ex) get the data of 'data1'
-	 *  chart.data("data1");
-	 */
-	generate(config) {
-		const inst = new Chart(config);
+		config.size_width = size ? size.width : null;
+		config.size_height = size ? size.height : null;
 
-		inst.internal.charts = this.instance;
-		this.instance.push(inst);
-
-		return inst;
+		this.flush(false, true);
 	},
 
 	/**
-	 * An array containing instance created
-	 * @property {Array} instance instance array
+	 * Force to redraw.
+	 * @method flush
+	 * @instance
+	 * @memberof Chart
+	 * @param {Boolean} [soft] For soft redraw.
+	 * @param {Boolean} [isFromResize] For soft redraw.
 	 * @example
-	 *  // generate charts
-	 *  var chart1 = bb.generate(...);
-	 *  var chart2 = bb.generate(...);
+	 * chart.flush();
 	 *
-	 *  bb.instance;  // [ chart1, chart2, ... ]
-	 * @memberof bb
+	 * // for soft redraw
+	 * chart.flush(true);
 	 */
-	instance: [],
+	flush(soft, isFromResize) {
+		const $$ = this.internal;
+
+		// reset possible zoom scale
+		if (isFromResize) {
+			$$.brush &amp;&amp; $$.brush.updateResize();
+		} else {
+			// re-update config info
+			$$.axis &amp;&amp; $$.axis.setOrient();
+		}
+
+		$$.zoomScale = null;
+
+		soft ? $$.redraw({
+			withTransform: true,
+			withUpdateXDomain: true,
+			withUpdateOrgXDomain: true,
+			withLegend: true
+		}) : $$.updateAndRedraw({
+			withLegend: true,
+			withTransition: false,
+			withTransitionForTransform: false,
+		});
+	},
 
 	/**
-	 * Internal chart object
-	 * @private
+	 * Reset the chart object and remove element and events completely.
+	 * @method destroy
+	 * @instance
+	 * @memberof Chart
+	 * @example
+	 * chart.destroy();
 	 */
-	chart: {
-		fn: Chart.prototype,
-		internal: {
-			fn: ChartInternal.prototype,
-			axis: {
-				fn: Axis.prototype
+	destroy() {
+		const $$ = this.internal;
+
+		if (notEmpty($$)) {
+			$$.charts.splice($$.charts.indexOf(this), 1);
+
+			// clear timers &amp;&amp; pending transition
+			$$.svg.select("*").interrupt();
+			isDefined($$.resizeTimeout) &amp;&amp; window.clearTimeout($$.resizeTimeout);
+
+			window.removeEventListener("resize", $$.resizeFunction);
+			$$.selectChart.classed("bb", false).html("");
+
+			// releasing references
+			Object.keys(this).forEach(key => {
+				key === "internal" &amp;&amp; Object.keys($$).forEach(k => {
+					$$[k] = null;
+				});
+
+				this[key] = null;
+				delete this[key];
+			});
+		}
+
+		return null;
+	},
+
+	/**
+	 * Get or set single config option value.
+	 * @method config
+	 * @instance
+	 * @memberof Chart
+	 * @param {String} name The option key name.
+	 * @param {*} [value] The value accepted for indicated option.
+	 * @param {Boolean} [redraw] Set to redraw with the new option changes.
+	 * - **NOTE:** Doesn't guarantee work in all circumstances. It can be applied for limited options only.
+	 * @example
+	 * // Getter
+	 * chart.config("gauge.max");
+	 *
+	 * // Setter
+	 * chart.config("gauge.max", 100);
+	 *
+	 * // Setter &amp; redraw with the new option
+	 * chart.config("gauge.max", 100, true);
+	 */
+	config(name, value, redraw) {
+		const $$ = this.internal;
+		const key = name &amp;&amp; name.replace(/\./g, "_");
+		let res;
+
+		if (key in $$.config) {
+			if (isDefined(value)) {
+				$$.config[key] = value;
+				res = value;
+
+				redraw &amp;&amp; this.flush();
+			} else {
+				res = $$.config[key];
 			}
 		}
-	}
-};
 
-export {bb};
-export default bb;
+		return res;
+	}
+});
 </code></pre>
         </article>
     </section>

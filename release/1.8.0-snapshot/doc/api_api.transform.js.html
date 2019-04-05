@@ -3,7 +3,7 @@
 <head>
     
     <meta charset="utf-8">
-    <title>core.js - billboard.js API doc</title>
+    <title>api/api.transform.js - billboard.js API doc</title>
     
     <meta name="description" content="Re-usable, easy interface JavaScript chart library based on D3 v4+" />
     
@@ -39,7 +39,7 @@
 
 <div id="main">
     
-    <h1 class="page-title">core.js</h1>
+    <h1 class="page-title">api/api.transform.js</h1>
     
 
     
@@ -51,144 +51,56 @@
         <article>
             <pre class="prettyprint source linenums"><code>/**
  * Copyright (c) 2017 ~ present NAVER Corp.
- * billboard project is licensed under the MIT license
+ * billboard.js project is licensed under the MIT license
  */
-import Chart from "./internals/Chart";
-import ChartInternal from "./internals/ChartInternal";
-import Axis from "./axis/Axis";
-
-import "./config/config";
-import "./internals/scale";
-import "./internals/domain";
-import "./data/data";
-import "./data/data.convert";
-import "./data/data.load";
-import "./internals/category";
-import "./interactions/interaction";
-import "./internals/size";
-import "./shape/shape";
-import "./shape/arc";
-import "./shape/bar";
-import "./shape/bubble";
-import "./shape/line";
-import "./shape/point";
-import "./shape/radar";
-import "./internals/text";
-import "./internals/type";
-import "./internals/grid";
-import "./internals/tooltip";
-import "./internals/legend";
-import "./internals/title";
-import "./internals/clip";
-import "./internals/region";
-import "./interactions/drag";
-import "./internals/selection";
-import "./interactions/subchart";
-import "./interactions/zoom";
-import "./internals/color";
-import "./internals/format";
-import "./internals/cache";
-import "./internals/class";
-import "./api/api.focus";
-import "./api/api.show";
-import "./api/api.zoom";
-import "./api/api.load";
-import "./api/api.flow";
-import "./api/api.selection";
-import "./api/api.transform";
-import "./api/api.group";
-import "./api/api.grid";
-import "./api/api.region";
-import "./api/api.data";
-import "./api/api.category";
-import "./api/api.color";
-import "./api/api.x";
-import "./api/api.axis";
-import "./api/api.legend";
-import "./api/api.chart";
-import "./api/api.tooltip";
-import "./internals/ua";
-import "./api/api.export";
+import Chart from "../internals/Chart";
+import {extend} from "../internals/util";
 
 /**
- * @namespace bb
- * @version #__VERSION__#
+ * Change the type of the chart.
+ * @private
+ * @param {String|Array} targetIds
+ * @param {String} type
+ * @param {Object} optionsForRedraw
  */
-const bb = {
-	/**
-	 * Version information
-	 * @property {String} version version
-	 * @example
-	 *    bb.version;  // "1.0.0"
-	 * @memberof bb
-	 */
-	version: "#__VERSION__#",
+function transformTo(targetIds, type, optionsForRedraw) {
+	const $$ = this;
+	const options = optionsForRedraw || {withTransitionForAxis: !$$.hasArcType()};
 
+	options.withTransitionForTransform = false;
+	$$.transiting = false;
+
+	$$.setTargetType(targetIds, type);
+	$$.updateTargets($$.data.targets); // this is needed when transforming to arc
+	$$.updateAndRedraw(options);
+}
+
+extend(Chart.prototype, {
 	/**
-	 * Generate chart
-	 * @param {Options} options chart options
-	 * @memberof bb
-	 * @return {Chart}
-	 * @see {@link Options} for different generation options
-	 * @see {@link Chart} for different methods API
+	 * Change the type of the chart.
+	 * @method transform
+	 * @instance
+	 * @memberof Chart
+	 * @param {String} type Specify the type to be transformed. The types listed in data.type can be used.
+	 * @param {String|Array} targetIds Specify targets to be transformed. If not given, all targets will be the candidate.
 	 * @example
-	 *  &lt;!-- chart holder -->
-	 * &lt;div id="LineChart">&lt;/div>
-	 * @example
-	 *   // generate chart with options
-	 *  var chart = bb.generate({
-	 *      "bindto": "#LineChart"
-	 *      "data": {
-	 *          "columns": [
-	 *              ["data1", 30, 200, 100, 400, 150, 250],
-	 *              ["data2", 50, 20, 10, 40, 15, 25]
-	 *           ]
-	 *      }
-	 *  });
+	 *  // all targets will be bar chart.
+	 *  chart.transform("bar");
 	 *
-	 *  // call some API
-	 *  // ex) get the data of 'data1'
-	 *  chart.data("data1");
-	 */
-	generate(config) {
-		const inst = new Chart(config);
-
-		inst.internal.charts = this.instance;
-		this.instance.push(inst);
-
-		return inst;
-	},
-
-	/**
-	 * An array containing instance created
-	 * @property {Array} instance instance array
-	 * @example
-	 *  // generate charts
-	 *  var chart1 = bb.generate(...);
-	 *  var chart2 = bb.generate(...);
+	 *  // only data1 will be bar chart.
+	 *  chart.transform("bar", "data1");
 	 *
-	 *  bb.instance;  // [ chart1, chart2, ... ]
-	 * @memberof bb
+	 *  // only data1 and data2 will be bar chart.
+	 *  chart.transform("bar", ["data1", "data2"]);
 	 */
-	instance: [],
+	transform(type, targetIds) {
+		const $$ = this.internal;
+		const options = ["pie", "donut"]
+			.indexOf(type) >= 0 ? {withTransform: true} : null;
 
-	/**
-	 * Internal chart object
-	 * @private
-	 */
-	chart: {
-		fn: Chart.prototype,
-		internal: {
-			fn: ChartInternal.prototype,
-			axis: {
-				fn: Axis.prototype
-			}
-		}
+		transformTo.bind($$)(targetIds, type, options);
 	}
-};
-
-export {bb};
-export default bb;
+});
 </code></pre>
         </article>
     </section>

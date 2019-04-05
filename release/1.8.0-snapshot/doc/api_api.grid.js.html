@@ -3,7 +3,7 @@
 <head>
     
     <meta charset="utf-8">
-    <title>core.js - billboard.js API doc</title>
+    <title>api/api.grid.js - billboard.js API doc</title>
     
     <meta name="description" content="Re-usable, easy interface JavaScript chart library based on D3 v4+" />
     
@@ -39,7 +39,7 @@
 
 <div id="main">
     
-    <h1 class="page-title">core.js</h1>
+    <h1 class="page-title">api/api.grid.js</h1>
     
 
     
@@ -51,144 +51,172 @@
         <article>
             <pre class="prettyprint source linenums"><code>/**
  * Copyright (c) 2017 ~ present NAVER Corp.
- * billboard project is licensed under the MIT license
+ * billboard.js project is licensed under the MIT license
  */
-import Chart from "./internals/Chart";
-import ChartInternal from "./internals/ChartInternal";
-import Axis from "./axis/Axis";
-
-import "./config/config";
-import "./internals/scale";
-import "./internals/domain";
-import "./data/data";
-import "./data/data.convert";
-import "./data/data.load";
-import "./internals/category";
-import "./interactions/interaction";
-import "./internals/size";
-import "./shape/shape";
-import "./shape/arc";
-import "./shape/bar";
-import "./shape/bubble";
-import "./shape/line";
-import "./shape/point";
-import "./shape/radar";
-import "./internals/text";
-import "./internals/type";
-import "./internals/grid";
-import "./internals/tooltip";
-import "./internals/legend";
-import "./internals/title";
-import "./internals/clip";
-import "./internals/region";
-import "./interactions/drag";
-import "./internals/selection";
-import "./interactions/subchart";
-import "./interactions/zoom";
-import "./internals/color";
-import "./internals/format";
-import "./internals/cache";
-import "./internals/class";
-import "./api/api.focus";
-import "./api/api.show";
-import "./api/api.zoom";
-import "./api/api.load";
-import "./api/api.flow";
-import "./api/api.selection";
-import "./api/api.transform";
-import "./api/api.group";
-import "./api/api.grid";
-import "./api/api.region";
-import "./api/api.data";
-import "./api/api.category";
-import "./api/api.color";
-import "./api/api.x";
-import "./api/api.axis";
-import "./api/api.legend";
-import "./api/api.chart";
-import "./api/api.tooltip";
-import "./internals/ua";
-import "./api/api.export";
+import Chart from "../internals/Chart";
+import {extend} from "../internals/util";
 
 /**
- * @namespace bb
- * @version #__VERSION__#
+ * Update x grid lines.
+ * @method xgrids
+ * @instance
+ * @memberof Chart
+ * @param {Array} grids X grid lines will be replaced with this argument. The format of this argument is the same as grid.x.lines.
+ * @example
+ *  // Show 2 x grid lines
+ * chart.xgrids([
+ *    {value: 1, text: "Label 1"},
+ *    {value: 4, text: "Label 4"}
+ * ]);
  */
-const bb = {
-	/**
-	 * Version information
-	 * @property {String} version version
-	 * @example
-	 *    bb.version;  // "1.0.0"
-	 * @memberof bb
-	 */
-	version: "#__VERSION__#",
+const xgrids = function(grids) {
+	const $$ = this.internal;
+	const config = $$.config;
 
+	if (!grids) {
+		return config.grid_x_lines;
+	}
+
+	config.grid_x_lines = grids;
+	$$.redrawWithoutRescale();
+
+	return config.grid_x_lines;
+};
+
+extend(xgrids, {
 	/**
-	 * Generate chart
-	 * @param {Options} options chart options
-	 * @memberof bb
-	 * @return {Chart}
-	 * @see {@link Options} for different generation options
-	 * @see {@link Chart} for different methods API
+	 * Add x grid lines.&lt;br>
+	 * This API adds new x grid lines instead of replacing like xgrids.
+	 * @method xgrids․add
+	 * @instance
+	 * @memberof Chart
+	 * @param {Array|Object} grids New x grid lines will be added. The format of this argument is the same as grid.x.lines and it's possible to give an Object if only one line will be added.
 	 * @example
-	 *  &lt;!-- chart holder -->
-	 * &lt;div id="LineChart">&lt;/div>
-	 * @example
-	 *   // generate chart with options
-	 *  var chart = bb.generate({
-	 *      "bindto": "#LineChart"
-	 *      "data": {
-	 *          "columns": [
-	 *              ["data1", 30, 200, 100, 400, 150, 250],
-	 *              ["data2", 50, 20, 10, 40, 15, 25]
-	 *           ]
-	 *      }
-	 *  });
+	 *  // Add a new x grid line
+	 * chart.xgrids.add(
+	 *   {value: 4, text: "Label 4"}
+	 * );
 	 *
-	 *  // call some API
-	 *  // ex) get the data of 'data1'
-	 *  chart.data("data1");
+	 * // Add new x grid lines
+	 * chart.xgrids.add([
+	 *   {value: 2, text: "Label 2"},
+	 *   {value: 4, text: "Label 4"}
+	 * ]);
 	 */
-	generate(config) {
-		const inst = new Chart(config);
-
-		inst.internal.charts = this.instance;
-		this.instance.push(inst);
-
-		return inst;
+	add: function(grids) {
+		return this.xgrids(
+			this.internal.config.grid_x_lines
+				.concat(grids || [])
+		);
 	},
 
 	/**
-	 * An array containing instance created
-	 * @property {Array} instance instance array
+	 * Remove x grid lines.&lt;br>
+	 * This API removes x grid lines.
+	 * @method xgrids․remove
+	 * @instance
+	 * @memberof Chart
+	 * @param {Object} params This argument should include value or class. If value is given, the x grid lines that have specified x value will be removed. If class is given, the x grid lines that have specified class will be removed. If args is not given, all of x grid lines will be removed.
 	 * @example
-	 *  // generate charts
-	 *  var chart1 = bb.generate(...);
-	 *  var chart2 = bb.generate(...);
+	 * // x grid line on x = 2 will be removed
+	 * chart.xgrids.remove({value: 2});
 	 *
-	 *  bb.instance;  // [ chart1, chart2, ... ]
-	 * @memberof bb
+	 * // x grid lines that have 'grid-A' will be removed
+	 * chart.xgrids.remove({
+	 *   class: "grid-A"
+	 * });
+	 *
+	 * // all of x grid lines will be removed
+	 * chart.xgrids.remove();
 	 */
-	instance: [],
-
-	/**
-	 * Internal chart object
-	 * @private
-	 */
-	chart: {
-		fn: Chart.prototype,
-		internal: {
-			fn: ChartInternal.prototype,
-			axis: {
-				fn: Axis.prototype
-			}
-		}
+	remove: function(params) { // TODO: multiple
+		this.internal.removeGridLines(params, true);
 	}
+});
+
+
+/**
+ * Update y grid lines.
+ * @method ygrids
+ * @instance
+ * @memberof Chart
+ * @param {Array} grids Y grid lines will be replaced with this argument. The format of this argument is the same as grid.y.lines.
+ * @example
+ *  // Show 2 y grid lines
+ * chart.ygrids([
+ *    {value: 100, text: "Label 1"},
+ *    {value: 400, text: "Label 4"}
+ * ]);
+ */
+const ygrids = function(grids) {
+	const $$ = this.internal;
+	const config = $$.config;
+
+	if (!grids) {
+		return config.grid_y_lines;
+	}
+
+	config.grid_y_lines = grids;
+	$$.redrawWithoutRescale();
+
+	return config.grid_y_lines;
 };
 
-export {bb};
-export default bb;
+extend(ygrids, {
+	/**
+	 * Add y grid lines.&lt;br>
+	 * This API adds new y grid lines instead of replacing like ygrids.
+	 * @method ygrids․add
+	 * @instance
+	 * @memberof Chart
+	 * @param {Array|Object} grids New y grid lines will be added. The format of this argument is the same as grid.y.lines and it's possible to give an Object if only one line will be added.
+	 * @example
+	 *  // Add a new x grid line
+	 * chart.ygrids.add(
+	 *   {value: 400, text: "Label 4"}
+	 * );
+	 *
+	 * // Add new x grid lines
+	 * chart.ygrids.add([
+	 *   {value: 200, text: "Label 2"},
+	 *   {value: 400, text: "Label 4"}
+	 * ]);
+	 */
+	add: function(grids) {
+		return this.ygrids(
+			this.internal.config.grid_y_lines
+				.concat(grids || [])
+		);
+	},
+
+	/**
+	 * Remove y grid lines.&lt;br>
+	 * This API removes x grid lines.
+	 * @method ygrids․remove
+	 * @instance
+	 * @memberof Chart
+	 * @param {Object} params This argument should include value or class. If value is given, the y grid lines that have specified y value will be removed. If class is given, the y grid lines that have specified class will be removed. If args is not given, all of y grid lines will be removed.
+	 * @example
+	 * // y grid line on y = 200 will be removed
+	 * chart.ygrids.remove({value: 200});
+	 *
+	 * // y grid lines that have 'grid-A' will be removed
+	 * chart.ygrids.remove({
+	 *   class: "grid-A"
+	 * });
+	 *
+	 * // all of y grid lines will be removed
+	 * chart.ygrids.remove();
+	 */
+	remove: function(params) { // TODO: multiple
+		this.internal.removeGridLines(params, false);
+	}
+});
+
+extend(Chart.prototype, {
+	xgrids,
+	ygrids
+});
 </code></pre>
         </article>
     </section>

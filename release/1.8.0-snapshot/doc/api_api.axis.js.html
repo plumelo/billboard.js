@@ -3,7 +3,7 @@
 <head>
     
     <meta charset="utf-8">
-    <title>core.js - billboard.js API doc</title>
+    <title>api/api.axis.js - billboard.js API doc</title>
     
     <meta name="description" content="Re-usable, easy interface JavaScript chart library based on D3 v4+" />
     
@@ -39,7 +39,7 @@
 
 <div id="main">
     
-    <h1 class="page-title">core.js</h1>
+    <h1 class="page-title">api/api.axis.js</h1>
     
 
     
@@ -51,144 +51,178 @@
         <article>
             <pre class="prettyprint source linenums"><code>/**
  * Copyright (c) 2017 ~ present NAVER Corp.
- * billboard project is licensed under the MIT license
+ * billboard.js project is licensed under the MIT license
  */
-import Chart from "./internals/Chart";
-import ChartInternal from "./internals/ChartInternal";
-import Axis from "./axis/Axis";
-
-import "./config/config";
-import "./internals/scale";
-import "./internals/domain";
-import "./data/data";
-import "./data/data.convert";
-import "./data/data.load";
-import "./internals/category";
-import "./interactions/interaction";
-import "./internals/size";
-import "./shape/shape";
-import "./shape/arc";
-import "./shape/bar";
-import "./shape/bubble";
-import "./shape/line";
-import "./shape/point";
-import "./shape/radar";
-import "./internals/text";
-import "./internals/type";
-import "./internals/grid";
-import "./internals/tooltip";
-import "./internals/legend";
-import "./internals/title";
-import "./internals/clip";
-import "./internals/region";
-import "./interactions/drag";
-import "./internals/selection";
-import "./interactions/subchart";
-import "./interactions/zoom";
-import "./internals/color";
-import "./internals/format";
-import "./internals/cache";
-import "./internals/class";
-import "./api/api.focus";
-import "./api/api.show";
-import "./api/api.zoom";
-import "./api/api.load";
-import "./api/api.flow";
-import "./api/api.selection";
-import "./api/api.transform";
-import "./api/api.group";
-import "./api/api.grid";
-import "./api/api.region";
-import "./api/api.data";
-import "./api/api.category";
-import "./api/api.color";
-import "./api/api.x";
-import "./api/api.axis";
-import "./api/api.legend";
-import "./api/api.chart";
-import "./api/api.tooltip";
-import "./internals/ua";
-import "./api/api.export";
+import Chart from "../internals/Chart";
+import {isValue, isDefined, isObjectType, extend} from "../internals/util";
 
 /**
- * @namespace bb
- * @version #__VERSION__#
+ * Set the min/max value
+ * @param {Chart} $$
+ * @param {String} type
+ * @param {Object} value
+ * @return {undefined}
+ * @private
  */
-const bb = {
+const setMinMax = ($$, type, value) => {
+	const config = $$.config;
+	const axisX = `axis_x_${type}`;
+	const axisY = `axis_y_${type}`;
+	const axisY2 = `axis_y2_${type}`;
+
+	if (isDefined(value)) {
+		if (isObjectType(value)) {
+			isValue(value.x) &amp;&amp; (config[axisX] = value.x);
+			isValue(value.y) &amp;&amp; (config[axisY] = value.y);
+			isValue(value.y2) &amp;&amp; (config[axisY2] = value.y2);
+		} else {
+			config[axisY] = value;
+			config[axisY2] = value;
+		}
+
+		$$.redraw({
+			withUpdateOrgXDomain: true,
+			withUpdateXDomain: true
+		});
+	}
+
+	return undefined;
+};
+
+/**
+ * Get the min/max value
+ * @param {Chart} $$
+ * @param {String} type
+ * @return {{x, y, y2}}
+ * @private
+ */
+const getMinMax = ($$, type) => {
+	const config = $$.config;
+
+	return {
+		x: config[`axis_x_${type}`],
+		y: config[`axis_y_${type}`],
+		y2: config[`axis_y2_${type}`]
+	};
+};
+
+/**
+ * Define axis
+ * @ignore
+ */
+const axis = extend(() => {}, {
 	/**
-	 * Version information
-	 * @property {String} version version
+	 * Get and set axis labels.
+	 * @method axis․labels
+	 * @instance
+	 * @memberof Chart
+	 * @param {Object} labels specified axis' label to be updated.
 	 * @example
-	 *    bb.version;  // "1.0.0"
-	 * @memberof bb
+	 * // Update axis' label
+	 * chart.axis.labels({
+	 *   x: "New X Axis Label",
+	 *   y: "New Y Axis Label"
+	 * });
 	 */
-	version: "#__VERSION__#",
+	labels: function(labels) {
+		const $$ = this.internal;
 
-	/**
-	 * Generate chart
-	 * @param {Options} options chart options
-	 * @memberof bb
-	 * @return {Chart}
-	 * @see {@link Options} for different generation options
-	 * @see {@link Chart} for different methods API
-	 * @example
-	 *  &lt;!-- chart holder -->
-	 * &lt;div id="LineChart">&lt;/div>
-	 * @example
-	 *   // generate chart with options
-	 *  var chart = bb.generate({
-	 *      "bindto": "#LineChart"
-	 *      "data": {
-	 *          "columns": [
-	 *              ["data1", 30, 200, 100, 400, 150, 250],
-	 *              ["data2", 50, 20, 10, 40, 15, 25]
-	 *           ]
-	 *      }
-	 *  });
-	 *
-	 *  // call some API
-	 *  // ex) get the data of 'data1'
-	 *  chart.data("data1");
-	 */
-	generate(config) {
-		const inst = new Chart(config);
+		if (arguments.length) {
+			Object.keys(labels).forEach(axisId => {
+				$$.axis.setLabelText(axisId, labels[axisId]);
+			});
 
-		inst.internal.charts = this.instance;
-		this.instance.push(inst);
-
-		return inst;
+			$$.axis.updateLabels();
+		}
 	},
 
 	/**
-	 * An array containing instance created
-	 * @property {Array} instance instance array
+	 * Get and set axis min value.
+	 * @method axis․min
+	 * @instance
+	 * @memberof Chart
+	 * @param {Object} min If min is given, specified axis' min value will be updated.&lt;br>
+	 *     If no argument is given, the min values set on generating option for each axis will be returned.
+	 *     If not set any min values on generation, it will return `undefined`.
 	 * @example
-	 *  // generate charts
-	 *  var chart1 = bb.generate(...);
-	 *  var chart2 = bb.generate(...);
-	 *
-	 *  bb.instance;  // [ chart1, chart2, ... ]
-	 * @memberof bb
+	 * // Update axis' min
+	 * chart.axis.min({
+	 *   x: -10,
+	 *   y: 1000,
+	 *   y2: 100
+	 * });
 	 */
-	instance: [],
+	min: function(min) {
+		const $$ = this.internal;
+
+		return arguments.length ?
+			setMinMax($$, "min", min) :
+			getMinMax($$, "min");
+	},
 
 	/**
-	 * Internal chart object
-	 * @private
+	 * Get and set axis max value.
+	 * @method axis․max
+	 * @instance
+	 * @memberof Chart
+	 * @param {Object} max If max is given, specified axis' max value will be updated.&lt;br>
+	 *     If no argument is given, the max values set on generating option for each axis will be returned.
+	 *     If not set any max values on generation, it will return `undefined`.
+	 * @example
+	 * // Update axis' label
+	 * chart.axis.max({
+	 *    x: 100,
+	 *    y: 1000,
+	 *    y2: 10000
+	 * });
 	 */
-	chart: {
-		fn: Chart.prototype,
-		internal: {
-			fn: ChartInternal.prototype,
-			axis: {
-				fn: Axis.prototype
-			}
-		}
-	}
-};
+	max: function(max) {
+		const $$ = this.internal;
 
-export {bb};
-export default bb;
+		return arguments.length ?
+			setMinMax($$, "max", max) :
+			getMinMax($$, "max");
+	},
+
+	/**
+	 * Get and set axis min and max value.
+	 * @method axis․range
+	 * @instance
+	 * @memberof Chart
+	 * @param {Object} range If range is given, specified axis' min and max value will be updated. If no argument is given, the current min and max values for each axis will be returned.
+	 * @example
+	 * // Update axis' label
+	 * chart.axis.range({
+	 *   min: {
+	 *     x: -10,
+	 *     y: -1000,
+	 *     y2: -10000
+	 *   },
+	 *   max: {
+	 *     x: 100,
+	 *     y: 1000,
+	 *     y2: 10000
+	 *   },
+	 * });
+	 */
+	range: function(range) {
+		const axis = this.axis;
+
+		if (arguments.length) {
+			isDefined(range.max) &amp;&amp; axis.max(range.max);
+			isDefined(range.min) &amp;&amp; axis.min(range.min);
+		} else {
+			return {
+				max: axis.max(),
+				min: axis.min()
+			};
+		}
+
+		return undefined;
+	}
+});
+
+extend(Chart.prototype, {axis});
 </code></pre>
         </article>
     </section>

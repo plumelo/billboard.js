@@ -3,7 +3,7 @@
 <head>
     
     <meta charset="utf-8">
-    <title>core.js - billboard.js API doc</title>
+    <title>api/api.load.js - billboard.js API doc</title>
     
     <meta name="description" content="Re-usable, easy interface JavaScript chart library based on D3 v4+" />
     
@@ -39,7 +39,7 @@
 
 <div id="main">
     
-    <h1 class="page-title">core.js</h1>
+    <h1 class="page-title">api/api.load.js</h1>
     
 
     
@@ -51,144 +51,139 @@
         <article>
             <pre class="prettyprint source linenums"><code>/**
  * Copyright (c) 2017 ~ present NAVER Corp.
- * billboard project is licensed under the MIT license
+ * billboard.js project is licensed under the MIT license
  */
-import Chart from "./internals/Chart";
-import ChartInternal from "./internals/ChartInternal";
-import Axis from "./axis/Axis";
+import Chart from "../internals/Chart";
+import {extend, isString, isArray} from "../internals/util";
 
-import "./config/config";
-import "./internals/scale";
-import "./internals/domain";
-import "./data/data";
-import "./data/data.convert";
-import "./data/data.load";
-import "./internals/category";
-import "./interactions/interaction";
-import "./internals/size";
-import "./shape/shape";
-import "./shape/arc";
-import "./shape/bar";
-import "./shape/bubble";
-import "./shape/line";
-import "./shape/point";
-import "./shape/radar";
-import "./internals/text";
-import "./internals/type";
-import "./internals/grid";
-import "./internals/tooltip";
-import "./internals/legend";
-import "./internals/title";
-import "./internals/clip";
-import "./internals/region";
-import "./interactions/drag";
-import "./internals/selection";
-import "./interactions/subchart";
-import "./interactions/zoom";
-import "./internals/color";
-import "./internals/format";
-import "./internals/cache";
-import "./internals/class";
-import "./api/api.focus";
-import "./api/api.show";
-import "./api/api.zoom";
-import "./api/api.load";
-import "./api/api.flow";
-import "./api/api.selection";
-import "./api/api.transform";
-import "./api/api.group";
-import "./api/api.grid";
-import "./api/api.region";
-import "./api/api.data";
-import "./api/api.category";
-import "./api/api.color";
-import "./api/api.x";
-import "./api/api.axis";
-import "./api/api.legend";
-import "./api/api.chart";
-import "./api/api.tooltip";
-import "./internals/ua";
-import "./api/api.export";
-
-/**
- * @namespace bb
- * @version #__VERSION__#
- */
-const bb = {
+extend(Chart.prototype, {
 	/**
-	 * Version information
-	 * @property {String} version version
-	 * @example
-	 *    bb.version;  // "1.0.0"
-	 * @memberof bb
-	 */
-	version: "#__VERSION__#",
-
-	/**
-	 * Generate chart
-	 * @param {Options} options chart options
-	 * @memberof bb
-	 * @return {Chart}
-	 * @see {@link Options} for different generation options
-	 * @see {@link Chart} for different methods API
-	 * @example
-	 *  &lt;!-- chart holder -->
-	 * &lt;div id="LineChart">&lt;/div>
-	 * @example
-	 *   // generate chart with options
-	 *  var chart = bb.generate({
-	 *      "bindto": "#LineChart"
-	 *      "data": {
-	 *          "columns": [
-	 *              ["data1", 30, 200, 100, 400, 150, 250],
-	 *              ["data2", 50, 20, 10, 40, 15, 25]
-	 *           ]
-	 *      }
-	 *  });
+	 * Load data to the chart.&lt;br>&lt;br>
+	 * You can specify multiple targets by giving an array that includes id as String. If no argument is given, all of targets will be toggles.
+	 * - &lt;b>Note:&lt;/b>
+	 *   - unload should be used if some data needs to be unloaded simultaneously.
+	 *     If you call unload API soon after/before load instead of unload param, chart will not be rendered properly because of cancel of animation.&lt;br>
+	 *   - done will be called after data loaded, but it's not after rendering.
+	 *     It's because rendering will finish after some transition and there is some time lag between loading and rendering
+	 * @method load
+	 * @instance
+	 * @memberof Chart
+	 * @param {Object} args The object can consist with following members:&lt;br>
 	 *
-	 *  // call some API
-	 *  // ex) get the data of 'data1'
-	 *  chart.data("data1");
+	 *    | Key | Description |
+	 *    | --- | --- |
+	 *    | - url&lt;br>- json&lt;br>- rows&lt;br>- columns | The data will be loaded. If data that has the same target id is given, the chart will be updated. Otherwise, new target will be added |
+	 *    | data | Data objects to be loaded |
+	 *    | names | Same as data.names() |
+	 *    | xs | Same as data.xs option  |
+	 *    | classes | The classes specified by data.classes will be updated. classes must be Object that has target id as keys. |
+	 *    | categories | The categories specified by axis.x.categories or data.x will be updated. categories must be Array. |
+	 *    | axes | The axes specified by data.axes will be updated. axes must be Object that has target id as keys. |
+	 *    | colors | The colors specified by data.colors will be updated. colors must be Object that has target id as keys. |
+	 *    | - type&lt;br>- types | The type of targets will be updated. type must be String and types must be Object. |
+	 *    | unload | Specify the data will be unloaded before loading new data. If true given, all of data will be unloaded. If target ids given as String or Array, specified targets will be unloaded. If absent or false given, unload will not occur. |
+	 *    | done | The specified function will be called after data loaded.|
+	 *
+	 * @example
+	 *  // Load data1 and unload data2 and data3
+	 *  chart.load({
+	 *     columns: [
+	 *        ["data1", 100, 200, 150, ...],
+	 *        ...
+	 *    ],
+	 *    unload: ["data2", "data3"],
+	 *    url: "...",
+	 *    done: function() { ... }
+	 *  });
 	 */
-	generate(config) {
-		const inst = new Chart(config);
+	load(args) {
+		const $$ = this.internal;
+		const config = $$.config;
 
-		inst.internal.charts = this.instance;
-		this.instance.push(inst);
+		// update xs if specified
+		args.xs &amp;&amp; $$.addXs(args.xs);
 
-		return inst;
+		// update names if exists
+		"names" in args &amp;&amp; this.data.names(args.names);
+
+		// update classes if exists
+		"classes" in args &amp;&amp; Object.keys(args.classes).forEach(id => {
+			config.data_classes[id] = args.classes[id];
+		});
+
+		// update categories if exists
+		if ("categories" in args &amp;&amp; $$.isCategorized()) {
+			config.axis_x_categories = args.categories;
+		}
+
+		// update axes if exists
+		"axes" in args &amp;&amp; Object.keys(args.axes).forEach(id => {
+			config.data_axes[id] = args.axes[id];
+		});
+
+		// update colors if exists
+		"colors" in args &amp;&amp; Object.keys(args.colors).forEach(id => {
+			config.data_colors[id] = args.colors[id];
+		});
+
+		// unload if needed
+		if ("unload" in args &amp;&amp; args.unload !== false) {
+			// TODO: do not unload if target will load (included in url/rows/columns)
+			$$.unload($$.mapToTargetIds(args.unload === true ? null : args.unload), () =>
+				$$.loadFromArgs(args)
+			);
+		} else {
+			$$.loadFromArgs(args);
+		}
 	},
 
 	/**
-	 * An array containing instance created
-	 * @property {Array} instance instance array
+	 * Unload data to the chart.&lt;br>&lt;br>
+	 * You can specify multiple targets by giving an array that includes id as String. If no argument is given, all of targets will be toggles.
+	 * - &lt;b>Note:&lt;/b>
+	 * If you call load API soon after/before unload, unload param of load should be used. Otherwise chart will not be rendered properly because of cancel of animation.&lt;br>
+	 * `done` will be called after data loaded, but it's not after rendering. It's because rendering will finish after some transition and there is some time lag between loading and rendering.
+	 * @method unload
+	 * @instance
+	 * @memberof Chart
+	 * @param {Object} args
+	 *  | key | Type | Description |
+	 *  | --- | --- | --- |
+	 *  | ids | String &amp;vert; Array | Target id data to be unloaded. If not given, all data will be unloaded. |
+	 *  | done | Fuction | Callback after data is unloaded. |
 	 * @example
-	 *  // generate charts
-	 *  var chart1 = bb.generate(...);
-	 *  var chart2 = bb.generate(...);
-	 *
-	 *  bb.instance;  // [ chart1, chart2, ... ]
-	 * @memberof bb
+	 *  // Unload data2 and data3
+	 *  chart.unload({
+	 *    ids: ["data2", "data3"],
+	 *    done: function() {
+	 *       // called after the unloaded
+	 *    }
+	 *  });
 	 */
-	instance: [],
+	unload(argsValue) {
+		const $$ = this.internal;
+		let args = argsValue || {};
 
-	/**
-	 * Internal chart object
-	 * @private
-	 */
-	chart: {
-		fn: Chart.prototype,
-		internal: {
-			fn: ChartInternal.prototype,
-			axis: {
-				fn: Axis.prototype
-			}
+		if (isArray(args)) {
+			args = {ids: args};
+		} else if (isString(args)) {
+			args = {ids: [args]};
 		}
-	}
-};
 
-export {bb};
-export default bb;
+		const ids = $$.mapToTargetIds(args.ids);
+
+		$$.unload(ids, () => {
+			$$.redraw({
+				withUpdateOrgXDomain: true,
+				withUpdateXDomain: true,
+				withLegend: true
+			});
+
+			$$.removeCache(ids);
+			args.done &amp;&amp; args.done();
+		});
+	}
+});
 </code></pre>
         </article>
     </section>

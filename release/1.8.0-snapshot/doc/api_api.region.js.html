@@ -3,7 +3,7 @@
 <head>
     
     <meta charset="utf-8">
-    <title>core.js - billboard.js API doc</title>
+    <title>api/api.region.js - billboard.js API doc</title>
     
     <meta name="description" content="Re-usable, easy interface JavaScript chart library based on D3 v4+" />
     
@@ -39,7 +39,7 @@
 
 <div id="main">
     
-    <h1 class="page-title">core.js</h1>
+    <h1 class="page-title">api/api.region.js</h1>
     
 
     
@@ -51,144 +51,137 @@
         <article>
             <pre class="prettyprint source linenums"><code>/**
  * Copyright (c) 2017 ~ present NAVER Corp.
- * billboard project is licensed under the MIT license
+ * billboard.js project is licensed under the MIT license
  */
-import Chart from "./internals/Chart";
-import ChartInternal from "./internals/ChartInternal";
-import Axis from "./axis/Axis";
-
-import "./config/config";
-import "./internals/scale";
-import "./internals/domain";
-import "./data/data";
-import "./data/data.convert";
-import "./data/data.load";
-import "./internals/category";
-import "./interactions/interaction";
-import "./internals/size";
-import "./shape/shape";
-import "./shape/arc";
-import "./shape/bar";
-import "./shape/bubble";
-import "./shape/line";
-import "./shape/point";
-import "./shape/radar";
-import "./internals/text";
-import "./internals/type";
-import "./internals/grid";
-import "./internals/tooltip";
-import "./internals/legend";
-import "./internals/title";
-import "./internals/clip";
-import "./internals/region";
-import "./interactions/drag";
-import "./internals/selection";
-import "./interactions/subchart";
-import "./interactions/zoom";
-import "./internals/color";
-import "./internals/format";
-import "./internals/cache";
-import "./internals/class";
-import "./api/api.focus";
-import "./api/api.show";
-import "./api/api.zoom";
-import "./api/api.load";
-import "./api/api.flow";
-import "./api/api.selection";
-import "./api/api.transform";
-import "./api/api.group";
-import "./api/api.grid";
-import "./api/api.region";
-import "./api/api.data";
-import "./api/api.category";
-import "./api/api.color";
-import "./api/api.x";
-import "./api/api.axis";
-import "./api/api.legend";
-import "./api/api.chart";
-import "./api/api.tooltip";
-import "./internals/ua";
-import "./api/api.export";
+import Chart from "../internals/Chart";
+import CLASS from "../config/classes";
+import {getOption, extend} from "../internals/util";
 
 /**
- * @namespace bb
- * @version #__VERSION__#
+ * Update regions.
+ * @method regions
+ * @instance
+ * @memberof Chart
+ * @param {Array} regions Regions will be replaced with this argument. The format of this argument is the same as regions.
+ * @return {Array} regions
+ * @example
+ * // Show 2 regions
+ * chart.regions([
+ *    {axis: "x", start: 5, class: "regionX"},
+ *    {axis: "y", end: 50, class: "regionY"}
+ * ]);
  */
-const bb = {
-	/**
-	 * Version information
-	 * @property {String} version version
-	 * @example
-	 *    bb.version;  // "1.0.0"
-	 * @memberof bb
-	 */
-	version: "#__VERSION__#",
+const regions = function(regions) {
+	const $$ = this.internal;
+	const config = $$.config;
 
+	if (!regions) {
+		return config.regions;
+	}
+
+	config.regions = regions;
+	$$.redrawWithoutRescale();
+
+	return regions;
+};
+
+extend(regions, {
 	/**
-	 * Generate chart
-	 * @param {Options} options chart options
-	 * @memberof bb
-	 * @return {Chart}
-	 * @see {@link Options} for different generation options
-	 * @see {@link Chart} for different methods API
+	 * Add new region.&lt;br>&lt;br>
+	 * This API adds new region instead of replacing like regions.
+	 * @method regions․add
+	 * @instance
+	 * @memberof Chart
+	 * @param {Array|Object} regions New region will be added. The format of this argument is the same as regions and it's possible to give an Object if only one region will be added.
+	 * @return {Array} regions
 	 * @example
-	 *  &lt;!-- chart holder -->
-	 * &lt;div id="LineChart">&lt;/div>
-	 * @example
-	 *   // generate chart with options
-	 *  var chart = bb.generate({
-	 *      "bindto": "#LineChart"
-	 *      "data": {
-	 *          "columns": [
-	 *              ["data1", 30, 200, 100, 400, 150, 250],
-	 *              ["data2", 50, 20, 10, 40, 15, 25]
-	 *           ]
-	 *      }
-	 *  });
+	 * // Add a new region
+	 * chart.regions.add(
+	 *    {axis: "x", start: 5, class: "regionX"}
+	 * );
 	 *
-	 *  // call some API
-	 *  // ex) get the data of 'data1'
-	 *  chart.data("data1");
+	 * // Add new regions
+	 * chart.regions.add([
+	 *    {axis: "x", start: 5, class: "regionX"},
+	 *    {axis: "y", end: 50, class: "regionY"}
+	 *]);
 	 */
-	generate(config) {
-		const inst = new Chart(config);
+	add: function(regions) {
+		const $$ = this.internal;
+		const config = $$.config;
 
-		inst.internal.charts = this.instance;
-		this.instance.push(inst);
+		if (!regions) {
+			return config.regions;
+		}
 
-		return inst;
+		config.regions = config.regions.concat(regions);
+		$$.redrawWithoutRescale();
+
+		return config.regions;
 	},
 
 	/**
-	 * An array containing instance created
-	 * @property {Array} instance instance array
+	 * Remove regions.&lt;br>&lt;br>
+	 * This API removes regions.
+	 * @method regions․remove
+	 * @instance
+	 * @memberof Chart
+	 * @param {Object} regions This argument should include classes. If classes is given, the regions that have one of the specified classes will be removed. If args is not given, all of regions will be removed.
+	 * @return {Array} regions Removed regions
 	 * @example
-	 *  // generate charts
-	 *  var chart1 = bb.generate(...);
-	 *  var chart2 = bb.generate(...);
+	 * // regions that have 'region-A' or 'region-B' will be removed.
+	 * chart.regions.remove({
+	 *   classes: [
+	 *     "region-A", "region-B"
+	 *   ]
+	 * });
 	 *
-	 *  bb.instance;  // [ chart1, chart2, ... ]
-	 * @memberof bb
+	 * // all of regions will be removed.
+	 * chart.regions.remove();
 	 */
-	instance: [],
+	remove: function(optionsValue) {
+		const $$ = this.internal;
+		const config = $$.config;
 
-	/**
-	 * Internal chart object
-	 * @private
-	 */
-	chart: {
-		fn: Chart.prototype,
-		internal: {
-			fn: ChartInternal.prototype,
-			axis: {
-				fn: Axis.prototype
-			}
+		const options = optionsValue || {};
+		const duration = getOption(options, "duration", config.transition_duration);
+		const classes = getOption(options, "classes", [CLASS.region]);
+		let regions = $$.main.select(`.${CLASS.regions}`)
+			.selectAll(classes.map(c => `.${c}`));
+
+		(duration ? regions.transition().duration(duration) : regions)
+			.style("opacity", "0")
+			.remove();
+
+		regions = config.regions;
+
+		if (Object.keys(options).length) {
+			regions = regions.filter(region => {
+				let found = false;
+
+				if (!region.class) {
+					return true;
+				}
+
+				region.class.split(" ").forEach(c => {
+					if (classes.indexOf(c) >= 0) {
+						found = true;
+					}
+				});
+
+				return !found;
+			});
+
+			config.regions = regions;
+		} else {
+			config.regions = [];
 		}
-	}
-};
 
-export {bb};
-export default bb;
+		return regions;
+	}
+});
+
+extend(Chart.prototype, {regions});
 </code></pre>
         </article>
     </section>

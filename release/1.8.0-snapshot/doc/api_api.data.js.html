@@ -3,7 +3,7 @@
 <head>
     
     <meta charset="utf-8">
-    <title>core.js - billboard.js API doc</title>
+    <title>api/api.data.js - billboard.js API doc</title>
     
     <meta name="description" content="Re-usable, easy interface JavaScript chart library based on D3 v4+" />
     
@@ -39,7 +39,7 @@
 
 <div id="main">
     
-    <h1 class="page-title">core.js</h1>
+    <h1 class="page-title">api/api.data.js</h1>
     
 
     
@@ -51,144 +51,191 @@
         <article>
             <pre class="prettyprint source linenums"><code>/**
  * Copyright (c) 2017 ~ present NAVER Corp.
- * billboard project is licensed under the MIT license
+ * billboard.js project is licensed under the MIT license
  */
-import Chart from "./internals/Chart";
-import ChartInternal from "./internals/ChartInternal";
-import Axis from "./axis/Axis";
-
-import "./config/config";
-import "./internals/scale";
-import "./internals/domain";
-import "./data/data";
-import "./data/data.convert";
-import "./data/data.load";
-import "./internals/category";
-import "./interactions/interaction";
-import "./internals/size";
-import "./shape/shape";
-import "./shape/arc";
-import "./shape/bar";
-import "./shape/bubble";
-import "./shape/line";
-import "./shape/point";
-import "./shape/radar";
-import "./internals/text";
-import "./internals/type";
-import "./internals/grid";
-import "./internals/tooltip";
-import "./internals/legend";
-import "./internals/title";
-import "./internals/clip";
-import "./internals/region";
-import "./interactions/drag";
-import "./internals/selection";
-import "./interactions/subchart";
-import "./interactions/zoom";
-import "./internals/color";
-import "./internals/format";
-import "./internals/cache";
-import "./internals/class";
-import "./api/api.focus";
-import "./api/api.show";
-import "./api/api.zoom";
-import "./api/api.load";
-import "./api/api.flow";
-import "./api/api.selection";
-import "./api/api.transform";
-import "./api/api.group";
-import "./api/api.grid";
-import "./api/api.region";
-import "./api/api.data";
-import "./api/api.category";
-import "./api/api.color";
-import "./api/api.x";
-import "./api/api.axis";
-import "./api/api.legend";
-import "./api/api.chart";
-import "./api/api.tooltip";
-import "./internals/ua";
-import "./api/api.export";
+import Chart from "../internals/Chart";
+import {extend, isUndefined, isArray} from "../internals/util";
 
 /**
- * @namespace bb
- * @version #__VERSION__#
+ * Get data loaded in the chart.
+ * @method data
+ * @instance
+ * @memberof Chart
+ * @param {String|Array} targetIds If this argument is given, this API returns the specified target data. If this argument is not given, all of data will be returned.
+ * @return {Array} Data objects
+ * @example
+ * // Get only data1 data
+ * chart.data("data1");
+ * // --> [{id: "data1", id_org: "data1", values: Array(6)}, ...]
+ *
+ * // Get data1 and data2 data
+ * chart.data(["data1", "data2"]);
+ *
+ * // Get all data
+ * chart.data();
  */
-const bb = {
-	/**
-	 * Version information
-	 * @property {String} version version
-	 * @example
-	 *    bb.version;  // "1.0.0"
-	 * @memberof bb
-	 */
-	version: "#__VERSION__#",
+const data = function(targetIds) {
+	const targets = this.internal.data.targets;
 
+	return isUndefined(targetIds) ?
+		targets : targets.filter(t => targetIds.indexOf(t.id) >= 0);
+};
+
+extend(data, {
 	/**
-	 * Generate chart
-	 * @param {Options} options chart options
-	 * @memberof bb
-	 * @return {Chart}
-	 * @see {@link Options} for different generation options
-	 * @see {@link Chart} for different methods API
+	 * Get data shown in the chart.
+	 * @method data․shown
+	 * @instance
+	 * @memberof Chart
+	 * @param {String|Array} targetIds If this argument is given, this API filters the data with specified target ids. If this argument is not given, all shown data will be returned.
+	 * @return {Array} Data objects
 	 * @example
-	 *  &lt;!-- chart holder -->
-	 * &lt;div id="LineChart">&lt;/div>
-	 * @example
-	 *   // generate chart with options
-	 *  var chart = bb.generate({
-	 *      "bindto": "#LineChart"
-	 *      "data": {
-	 *          "columns": [
-	 *              ["data1", 30, 200, 100, 400, 150, 250],
-	 *              ["data2", 50, 20, 10, 40, 15, 25]
-	 *           ]
-	 *      }
-	 *  });
+	 * // Get shown data by filtering to include only data1 data
+	 * chart.data.shown("data1");
+	 * // --> [{id: "data1", id_org: "data1", values: Array(6)}, ...]
 	 *
-	 *  // call some API
-	 *  // ex) get the data of 'data1'
-	 *  chart.data("data1");
+	 * // Get shown data by filtering to include data1 and data2 data
+	 * chart.data.shown(["data1", "data2"]);
+	 *
+	 * // Get all shown data
+	 * chart.data.shown();
 	 */
-	generate(config) {
-		const inst = new Chart(config);
-
-		inst.internal.charts = this.instance;
-		this.instance.push(inst);
-
-		return inst;
+	shown: function(targetIds) {
+		return this.internal.filterTargetsToShow(this.data(targetIds));
 	},
 
 	/**
-	 * An array containing instance created
-	 * @property {Array} instance instance array
+	 * Get values of the data loaded in the chart.
+	 * @method data․values
+	 * @instance
+	 * @memberof Chart
+	 * @param {String|Array} targetIds This API returns the values of specified target. If this argument is not given, null will be retruned
+	 * @return {Array} Data values
 	 * @example
-	 *  // generate charts
-	 *  var chart1 = bb.generate(...);
-	 *  var chart2 = bb.generate(...);
-	 *
-	 *  bb.instance;  // [ chart1, chart2, ... ]
-	 * @memberof bb
+	 * // Get data1 values
+	 * chart.data.values("data1");
+	 * // --> [10, 20, 30, 40]
 	 */
-	instance: [],
+	values: function(targetId, flat = true) {
+		let values = null;
 
-	/**
-	 * Internal chart object
-	 * @private
-	 */
-	chart: {
-		fn: Chart.prototype,
-		internal: {
-			fn: ChartInternal.prototype,
-			axis: {
-				fn: Axis.prototype
+		if (targetId) {
+			const targets = this.data(targetId);
+
+			if (targets &amp;&amp; isArray(targets)) {
+				values = [];
+
+				targets.forEach(v => {
+					const dataValue = v.values.map(d => d.value);
+
+					flat ? (values = values.concat(dataValue)) : values.push(dataValue);
+				});
 			}
 		}
-	}
-};
 
-export {bb};
-export default bb;
+		return values;
+	},
+
+	/**
+	 * Get and set names of the data loaded in the chart.
+	 * @method data․names
+	 * @instance
+	 * @memberof Chart
+	 * @param {Object} names If this argument is given, the names of data will be updated. If not given, the current names will be returned. The format of this argument is the same as
+	 * @return {Object} Corresponding names according its key value, if specified names values.
+	 * @example
+	 * // Get current names
+	 * chart.data.names();
+	 * // --> {data1: "test1", data2: "test2"}
+	 *
+	 * // Update names
+	 * chart.data.names({
+	 *  data1: "New Name 1",
+	 *  data2: "New Name 2"
+	 *});
+	 */
+	names: function(names) {
+		this.internal.clearLegendItemTextBoxCache();
+
+		return this.internal.updateDataAttributes("names", names);
+	},
+
+	/**
+	 * Get and set colors of the data loaded in the chart.
+	 * @method data․colors
+	 * @instance
+	 * @memberof Chart
+	 * @param {Object} colors If this argument is given, the colors of data will be updated. If not given, the current colors will be returned. The format of this argument is the same as [data.colors](./Options.html#.data%25E2%2580%25A4colors).
+	 * @return {Object} Corresponding data color value according its key value.
+	 * @example
+	 * // Get current colors
+	 * chart.data.colors();
+	 * // --> {data1: "#00c73c", data2: "#fa7171"}
+	 *
+	 * // Update colors
+	 * chart.data.colors({
+	 *  data1: "#FFFFFF",
+	 *  data2: "#000000"
+	 * });
+	 */
+	colors: function(colors) {
+		return this.internal.updateDataAttributes("colors", colors);
+	},
+
+	/**
+	 * Get and set axes of the data loaded in the chart.
+	 * @method data․axes
+	 * @instance
+	 * @memberof Chart
+	 * @param {Object} axes If this argument is given, the axes of data will be updated. If not given, the current axes will be returned. The format of this argument is the same as
+	 * @return {Object} Corresponding axes value for data, if specified axes value.
+	 * @example
+	 * // Get current axes
+	 * chart.data.axes();
+	 * // --> {data1: "y"}
+	 *
+	 * // Update axes
+	 * chart.data.axes({
+	 *  data1: "y",
+	 *  data2: "y2"
+	 * });
+	 */
+	axes: function(axes) {
+		return this.internal.updateDataAttributes("axes", axes);
+	},
+
+	/**
+	 * Get the minimum data value bound to the chart
+	 * @method data․min
+	 * @instance
+	 * @memberof Chart
+	 * @return {Array} Data objects
+	 * @example
+	 * // Get current axes
+	 * chart.data.min();
+	 * // --> [{x: 0, value: 30, id: "data1", index: 0}, ...]
+	 */
+	min: function() {
+		return this.internal.getMinMaxData().min;
+	},
+
+	/**
+	 * Get the maximum data value bound to the chart
+	 * @method data․max
+	 * @instance
+	 * @memberof Chart
+	 * @return {Array} Data objects
+	 * @example
+	 * // Get current axes
+	 * chart.data.max();
+	 * // --> [{x: 3, value: 400, id: "data1", index: 3}, ...]
+	 */
+	max: function() {
+		return this.internal.getMinMaxData().max;
+	}
+});
+
+extend(Chart.prototype, {data});
 </code></pre>
         </article>
     </section>

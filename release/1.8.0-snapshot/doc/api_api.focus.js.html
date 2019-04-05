@@ -3,7 +3,7 @@
 <head>
     
     <meta charset="utf-8">
-    <title>core.js - billboard.js API doc</title>
+    <title>api/api.focus.js - billboard.js API doc</title>
     
     <meta name="description" content="Re-usable, easy interface JavaScript chart library based on D3 v4+" />
     
@@ -39,7 +39,7 @@
 
 <div id="main">
     
-    <h1 class="page-title">core.js</h1>
+    <h1 class="page-title">api/api.focus.js</h1>
     
 
     
@@ -51,144 +51,120 @@
         <article>
             <pre class="prettyprint source linenums"><code>/**
  * Copyright (c) 2017 ~ present NAVER Corp.
- * billboard project is licensed under the MIT license
+ * billboard.js project is licensed under the MIT license
  */
-import Chart from "./internals/Chart";
-import ChartInternal from "./internals/ChartInternal";
-import Axis from "./axis/Axis";
+import {select as d3Select} from "d3-selection";
+import Chart from "../internals/Chart";
+import CLASS from "../config/classes";
+import {extend} from "../internals/util";
 
-import "./config/config";
-import "./internals/scale";
-import "./internals/domain";
-import "./data/data";
-import "./data/data.convert";
-import "./data/data.load";
-import "./internals/category";
-import "./interactions/interaction";
-import "./internals/size";
-import "./shape/shape";
-import "./shape/arc";
-import "./shape/bar";
-import "./shape/bubble";
-import "./shape/line";
-import "./shape/point";
-import "./shape/radar";
-import "./internals/text";
-import "./internals/type";
-import "./internals/grid";
-import "./internals/tooltip";
-import "./internals/legend";
-import "./internals/title";
-import "./internals/clip";
-import "./internals/region";
-import "./interactions/drag";
-import "./internals/selection";
-import "./interactions/subchart";
-import "./interactions/zoom";
-import "./internals/color";
-import "./internals/format";
-import "./internals/cache";
-import "./internals/class";
-import "./api/api.focus";
-import "./api/api.show";
-import "./api/api.zoom";
-import "./api/api.load";
-import "./api/api.flow";
-import "./api/api.selection";
-import "./api/api.transform";
-import "./api/api.group";
-import "./api/api.grid";
-import "./api/api.region";
-import "./api/api.data";
-import "./api/api.category";
-import "./api/api.color";
-import "./api/api.x";
-import "./api/api.axis";
-import "./api/api.legend";
-import "./api/api.chart";
-import "./api/api.tooltip";
-import "./internals/ua";
-import "./api/api.export";
-
-/**
- * @namespace bb
- * @version #__VERSION__#
- */
-const bb = {
+extend(Chart.prototype, {
 	/**
-	 * Version information
-	 * @property {String} version version
+	 * This API highlights specified targets and fade out the others.&lt;br>&lt;br>
+	 * You can specify multiple targets by giving an array that includes id as String. If no argument is given, all of targets will be highlighted.
+	 * @method focus
+	 * @instance
+	 * @memberof Chart
+	 * @param {String|Array} targetIdsValue Target ids to be highlighted.
 	 * @example
-	 *    bb.version;  // "1.0.0"
-	 * @memberof bb
-	 */
-	version: "#__VERSION__#",
-
-	/**
-	 * Generate chart
-	 * @param {Options} options chart options
-	 * @memberof bb
-	 * @return {Chart}
-	 * @see {@link Options} for different generation options
-	 * @see {@link Chart} for different methods API
-	 * @example
-	 *  &lt;!-- chart holder -->
-	 * &lt;div id="LineChart">&lt;/div>
-	 * @example
-	 *   // generate chart with options
-	 *  var chart = bb.generate({
-	 *      "bindto": "#LineChart"
-	 *      "data": {
-	 *          "columns": [
-	 *              ["data1", 30, 200, 100, 400, 150, 250],
-	 *              ["data2", 50, 20, 10, 40, 15, 25]
-	 *           ]
-	 *      }
-	 *  });
+	 *  // data1 will be highlighted and the others will be faded out
+	 *  chart.focus("data1");
 	 *
-	 *  // call some API
-	 *  // ex) get the data of 'data1'
-	 *  chart.data("data1");
+	 * // data1 and data2 will be highlighted and the others will be faded out
+	 * chart.focus(["data1", "data2"]);
+	 *
+	 * // all targets will be highlighted
+	 * chart.focus();
 	 */
-	generate(config) {
-		const inst = new Chart(config);
+	focus(targetIdsValue) {
+		const $$ = this.internal;
+		const targetIds = $$.mapToTargetIds(targetIdsValue);
+		const candidates = $$.svg.selectAll(
+			$$.selectorTargets(targetIds.filter($$.isTargetToShow, $$))
+		);
 
-		inst.internal.charts = this.instance;
-		this.instance.push(inst);
+		this.revert();
+		this.defocus();
 
-		return inst;
+		candidates.classed(CLASS.focused, true).classed(CLASS.defocused, false);
+
+		$$.hasArcType() &amp;&amp; $$.expandArc(targetIds);
+		$$.toggleFocusLegend(targetIds, true);
+
+		$$.focusedTargetIds = targetIds;
+		$$.defocusedTargetIds = $$.defocusedTargetIds.filter(id => targetIds.indexOf(id) &lt; 0);
 	},
 
 	/**
-	 * An array containing instance created
-	 * @property {Array} instance instance array
+	 * This API fades out specified targets and reverts the others.&lt;br>&lt;br>
+	 * You can specify multiple targets by giving an array that includes id as String. If no argument is given, all of targets will be faded out.
+	 * @method defocus
+	 * @instance
+	 * @memberof Chart
+	 * @param {String|Array} Target ids to be faded out.
 	 * @example
-	 *  // generate charts
-	 *  var chart1 = bb.generate(...);
-	 *  var chart2 = bb.generate(...);
+	 * // data1 will be faded out and the others will be reverted.
+	 * chart.defocus("data1");
 	 *
-	 *  bb.instance;  // [ chart1, chart2, ... ]
-	 * @memberof bb
+	 * // data1 and data2 will be faded out and the others will be reverted.
+	 * chart.defocus(["data1", "data2"]);
+	 *
+	 * // all targets will be faded out.
+	 * chart.defocus();
 	 */
-	instance: [],
+	defocus(targetIdsValue) {
+		const $$ = this.internal;
+		const targetIds = $$.mapToTargetIds(targetIdsValue);
+		const candidates = $$.svg.selectAll(
+			$$.selectorTargets(targetIds.filter($$.isTargetToShow, $$))
+		);
+
+		candidates.classed(CLASS.focused, false).classed(CLASS.defocused, true);
+		$$.hasArcType() &amp;&amp; $$.unexpandArc(targetIds);
+		$$.toggleFocusLegend(targetIds, false);
+
+		$$.focusedTargetIds = $$.focusedTargetIds.filter(id => targetIds.indexOf(id) &lt; 0);
+		$$.defocusedTargetIds = targetIds;
+	},
 
 	/**
-	 * Internal chart object
-	 * @private
+	 * This API reverts specified targets.&lt;br>&lt;br>
+	 * You can specify multiple targets by giving an array that includes id as String. If no argument is given, all of targets will be reverted.
+	 * @method revert
+	 * @instance
+	 * @memberof Chart
+	 * @param {String|Array} Target ids to be reverted
+	 * @example
+	 * // data1 will be reverted.
+	 * chart.revert("data1");
+	 *
+	 * // data1 and data2 will be reverted.
+	 * chart.revert(["data1", "data2"]);
+	 *
+	 * // all targets will be reverted.
+	 * chart.revert();
 	 */
-	chart: {
-		fn: Chart.prototype,
-		internal: {
-			fn: ChartInternal.prototype,
-			axis: {
-				fn: Axis.prototype
-			}
-		}
-	}
-};
+	revert(targetIdsValue) {
+		const $$ = this.internal;
+		const targetIds = $$.mapToTargetIds(targetIdsValue);
+		const candidates = $$.svg.selectAll($$.selectorTargets(targetIds)); // should be for all targets
 
-export {bb};
-export default bb;
+		candidates.classed(CLASS.focused, false).classed(CLASS.defocused, false);
+		$$.hasArcType() &amp;&amp; $$.unexpandArc(targetIds);
+
+		if ($$.config.legend_show) {
+			$$.showLegend(targetIds.filter($$.isLegendToShow.bind($$)));
+			$$.legend.selectAll($$.selectorLegends(targetIds))
+				.filter(function() {
+					return d3Select(this).classed(CLASS.legendItemFocused);
+				})
+				.classed(CLASS.legendItemFocused, false);
+		}
+
+		$$.focusedTargetIds = [];
+		$$.defocusedTargetIds = [];
+	}
+});
 </code></pre>
         </article>
     </section>

@@ -3,7 +3,7 @@
 <head>
     
     <meta charset="utf-8">
-    <title>core.js - billboard.js API doc</title>
+    <title>api/api.show.js - billboard.js API doc</title>
     
     <meta name="description" content="Re-usable, easy interface JavaScript chart library based on D3 v4+" />
     
@@ -39,7 +39,7 @@
 
 <div id="main">
     
-    <h1 class="page-title">core.js</h1>
+    <h1 class="page-title">api/api.show.js</h1>
     
 
     
@@ -51,144 +51,119 @@
         <article>
             <pre class="prettyprint source linenums"><code>/**
  * Copyright (c) 2017 ~ present NAVER Corp.
- * billboard project is licensed under the MIT license
+ * billboard.js project is licensed under the MIT license
  */
-import Chart from "./internals/Chart";
-import ChartInternal from "./internals/ChartInternal";
-import Axis from "./axis/Axis";
+import Chart from "../internals/Chart";
+import {extend} from "../internals/util";
 
-import "./config/config";
-import "./internals/scale";
-import "./internals/domain";
-import "./data/data";
-import "./data/data.convert";
-import "./data/data.load";
-import "./internals/category";
-import "./interactions/interaction";
-import "./internals/size";
-import "./shape/shape";
-import "./shape/arc";
-import "./shape/bar";
-import "./shape/bubble";
-import "./shape/line";
-import "./shape/point";
-import "./shape/radar";
-import "./internals/text";
-import "./internals/type";
-import "./internals/grid";
-import "./internals/tooltip";
-import "./internals/legend";
-import "./internals/title";
-import "./internals/clip";
-import "./internals/region";
-import "./interactions/drag";
-import "./internals/selection";
-import "./interactions/subchart";
-import "./interactions/zoom";
-import "./internals/color";
-import "./internals/format";
-import "./internals/cache";
-import "./internals/class";
-import "./api/api.focus";
-import "./api/api.show";
-import "./api/api.zoom";
-import "./api/api.load";
-import "./api/api.flow";
-import "./api/api.selection";
-import "./api/api.transform";
-import "./api/api.group";
-import "./api/api.grid";
-import "./api/api.region";
-import "./api/api.data";
-import "./api/api.category";
-import "./api/api.color";
-import "./api/api.x";
-import "./api/api.axis";
-import "./api/api.legend";
-import "./api/api.chart";
-import "./api/api.tooltip";
-import "./internals/ua";
-import "./api/api.export";
-
-/**
- * @namespace bb
- * @version #__VERSION__#
- */
-const bb = {
+extend(Chart.prototype, {
 	/**
-	 * Version information
-	 * @property {String} version version
-	 * @example
-	 *    bb.version;  // "1.0.0"
-	 * @memberof bb
+	 * Show/Hide data series
+	 * @private
 	 */
-	version: "#__VERSION__#",
+	_showHide(show, targetIdsValue, options) {
+		const $$ = this.internal;
+		const targetIds = $$.mapToTargetIds(targetIdsValue);
 
-	/**
-	 * Generate chart
-	 * @param {Options} options chart options
-	 * @memberof bb
-	 * @return {Chart}
-	 * @see {@link Options} for different generation options
-	 * @see {@link Chart} for different methods API
-	 * @example
-	 *  &lt;!-- chart holder -->
-	 * &lt;div id="LineChart">&lt;/div>
-	 * @example
-	 *   // generate chart with options
-	 *  var chart = bb.generate({
-	 *      "bindto": "#LineChart"
-	 *      "data": {
-	 *          "columns": [
-	 *              ["data1", 30, 200, 100, 400, 150, 250],
-	 *              ["data2", 50, 20, 10, 40, 15, 25]
-	 *           ]
-	 *      }
-	 *  });
-	 *
-	 *  // call some API
-	 *  // ex) get the data of 'data1'
-	 *  chart.data("data1");
-	 */
-	generate(config) {
-		const inst = new Chart(config);
+		$$[`${show ? "remove" : "add"}HiddenTargetIds`](targetIds);
+		const targets = $$.svg.selectAll($$.selectorTargets(targetIds));
+		const opacity = show ? "1" : "0";
 
-		inst.internal.charts = this.instance;
-		this.instance.push(inst);
+		targets.transition()
+			.style("opacity", opacity, "important")
+			.call($$.endall, () => {
+				targets.style("opacity", null).style("opacity", opacity);
+			});
 
-		return inst;
+		options.withLegend &amp;&amp; $$[`${show ? "show" : "hide"}Legend`](targetIds);
+
+		$$.redraw({
+			withUpdateOrgXDomain: true,
+			withUpdateXDomain: true,
+			withLegend: true
+		});
 	},
 
 	/**
-	 * An array containing instance created
-	 * @property {Array} instance instance array
-	 * @example
-	 *  // generate charts
-	 *  var chart1 = bb.generate(...);
-	 *  var chart2 = bb.generate(...);
+	 * Show data series on chart
+	 * @method show
+	 * @instance
+	 * @memberof Chart
+	 * @param {String|Array} [targetIdsValue=all] The target id value.
+	 * @param {Object} [options] The object can consist with following members:&lt;br>
 	 *
-	 *  bb.instance;  // [ chart1, chart2, ... ]
-	 * @memberof bb
+	 *    | Key | Type | default | Description |
+	 *    | --- | --- | --- | --- |
+	 *    | withLegend | Boolean | false | whether or not display legend |
+	 *
+	 * @example
+	 * // show 'data1'
+	 * chart.show("data1");
+	 *
+	 * // show 'data1' and 'data3'
+	 * chart.show(["data1", "data3"]);
 	 */
-	instance: [],
+	show(targetIdsValue, options = {}) {
+		this._showHide(true, targetIdsValue, options);
+	},
 
 	/**
-	 * Internal chart object
-	 * @private
+	 * Hide data series from chart
+	 * @method hide
+	 * @instance
+	 * @memberof Chart
+	 * @param {String|Array} [targetIdsValue=all] The target id value.
+	 * @param {Object} [options] The object can consist with following members:&lt;br>
+	 *
+	 *    | Key | Type | default | Description |
+	 *    | --- | --- | --- | --- |
+	 *    | withLegend | Boolean | false | whether or not display legend |
+	 *
+	 * @example
+	 * // hide 'data1'
+	 * chart.hide("data1");
+	 *
+	 * // hide 'data1' and 'data3'
+	 * chart.hide(["data1", "data3"]);
 	 */
-	chart: {
-		fn: Chart.prototype,
-		internal: {
-			fn: ChartInternal.prototype,
-			axis: {
-				fn: Axis.prototype
-			}
-		}
-	}
-};
+	hide(targetIdsValue, options = {}) {
+		this._showHide(false, targetIdsValue, options);
+	},
 
-export {bb};
-export default bb;
+	/**
+	 * Toggle data series on chart. When target data is hidden, it will show. If is shown, it will hide in vice versa.
+	 * @method toggle
+	 * @instance
+	 * @memberof Chart
+	 * @param {String|Array} [targetIdsValue=all] The target id value.
+	 * @param {Object} [options] The object can consist with following members:&lt;br>
+	 *
+	 *    | Key | Type | default | Description |
+	 *    | --- | --- | --- | --- |
+	 *    | withLegend | Boolean | false | whether or not display legend |
+	 *
+	 * @example
+	 * // toggle 'data1'
+	 * chart.toggle("data1");
+	 *
+	 * // toggle 'data1' and 'data3'
+	 * chart.toggle(["data1", "data3"]);
+	 */
+	toggle(targetIds, options = {}) {
+		const $$ = this.internal;
+		const targets = {show: [], hide: []};
+
+		// sort show &amp; hide target ids
+		$$.mapToTargetIds(targetIds)
+			.forEach(id => targets[$$.isTargetToShow(id) ? "hide" : "show"].push(id));
+
+		// perform show &amp; hide task separately
+		// https://github.com/naver/billboard.js/issues/454
+		targets.show.length &amp;&amp; this.show(targets.show, options);
+		targets.hide.length &amp;&amp; setTimeout(() => this.hide(targets.hide, options), 0);
+	}
+});
+
 </code></pre>
         </article>
     </section>
